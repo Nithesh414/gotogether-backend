@@ -1,0 +1,17 @@
+target/
+.git/
+.env
+.env.*
+*.log
+driver-login.json
+src/main/resources/application.properties
+src/main/resources/application-local.properties
+src/main/resources/application-prod.properties
+
+src/main/java_backup/
+
+*.backup-*
+*.gps-backup
+
+*.backup-*
+*.gps-backup

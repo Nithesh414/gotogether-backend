@@ -1,0 +1,49 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+.idea
+*.iws
+*.iml
+*.ipr
+.vscode/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+build/
+
+# GoTogether secrets
+driver-login.json
+.env
+.env.*
+!.env.example
+
+# Local Spring configuration containing credentials
+/src/main/resources/application.properties
+/src/main/resources/application-local.properties
+/src/main/resources/application-prod.properties
+
+# Logs
+*.log
+
+# Build output
+
+src/main/java_backup/
+
+*.backup-*
+*.gps-backup
+
+*.backup-*
+*.gps-backup

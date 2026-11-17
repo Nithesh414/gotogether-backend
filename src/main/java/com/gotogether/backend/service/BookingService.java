@@ -659,26 +659,35 @@ public class BookingService {
         }
     }
 
-    private BookingResponse toResponse(Booking booking) {
+    
+private BookingResponse toResponse(Booking booking) {
 
-        Ride ride = booking.getRide();
-        User passenger = booking.getPassenger();
+    Ride ride = booking.getRide();
+    User passenger = booking.getPassenger();
 
-        return new BookingResponse(
-                booking.getId(),
-                ride.getId(),
-                passenger.getId(),
-                passenger.getFullName(),
-                ride.getFromLocation(),
-                ride.getToLocation(),
-                ride.getDepartureDateTime(),
-                booking.getSeatsBooked(),
-                booking.getTotalAmount(),
-                booking.getStatus(),
-                booking.getCreatedAt(),
-                booking.getCancelledAt(),
-                booking.getPaymentStatus(),
-                booking.getPaymentReference(),
-                booking.getPaidAt());
-    }
-}
+    return new BookingResponse(
+            booking.getId(),
+            ride.getId(),
+            passenger.getId(),
+            passenger.getFullName(),
+
+            ride.getFromLocation(),
+            ride.getToLocation(),
+
+            // Pickup and destination coordinates
+            ride.getFromLatitude(),
+            ride.getFromLongitude(),
+            ride.getToLatitude(),
+            ride.getToLongitude(),
+
+            ride.getDepartureDateTime(),
+            booking.getSeatsBooked(),
+            booking.getTotalAmount(),
+            booking.getStatus(),
+            booking.getCreatedAt(),
+            booking.getCancelledAt(),
+            booking.getPaymentStatus(),
+            booking.getPaymentReference(),
+            booking.getPaidAt()
+    );
+}}

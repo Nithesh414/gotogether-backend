@@ -23,6 +23,14 @@ public class Ride {
     @Column(nullable = false)
     private String toLocation;
 
+    // Pickup coordinates
+    private Double fromLatitude;
+    private Double fromLongitude;
+
+    // Destination coordinates
+    private Double toLatitude;
+    private Double toLongitude;
+
     @Column(nullable = false)
     private LocalDateTime departureDateTime;
 
@@ -31,6 +39,9 @@ public class Ride {
 
     @Column(nullable = false)
     private Integer availableSeats;
+
+    @Column(nullable = false)
+private boolean gpsSharingActive = false;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerSeat;
@@ -45,38 +56,119 @@ public class Ride {
         createdAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public DriverProfile getDriver() { return driver; }
-    public void setDriver(DriverProfile driver) { this.driver = driver; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getFromLocation() { return fromLocation; }
-    public void setFromLocation(String fromLocation) { this.fromLocation = fromLocation; }
+    public DriverProfile getDriver() {
+        return driver;
+    }
 
-    public String getToLocation() { return toLocation; }
-    public void setToLocation(String toLocation) { this.toLocation = toLocation; }
+    public void setDriver(DriverProfile driver) {
+        this.driver = driver;
+    }
 
-    public LocalDateTime getDepartureDateTime() { return departureDateTime; }
+    public String getFromLocation() {
+        return fromLocation;
+    }
+
+    public void setFromLocation(String fromLocation) {
+        this.fromLocation = fromLocation;
+    }
+
+    public String getToLocation() {
+        return toLocation;
+    }
+
+    public void setToLocation(String toLocation) {
+        this.toLocation = toLocation;
+    }
+
+    public Double getFromLatitude() {
+        return fromLatitude;
+    }
+
+    public void setFromLatitude(Double fromLatitude) {
+        this.fromLatitude = fromLatitude;
+    }
+
+    public Double getFromLongitude() {
+        return fromLongitude;
+    }
+
+    public void setFromLongitude(Double fromLongitude) {
+        this.fromLongitude = fromLongitude;
+    }
+
+    public Double getToLatitude() {
+        return toLatitude;
+    }
+
+    public void setToLatitude(Double toLatitude) {
+        this.toLatitude = toLatitude;
+    }
+
+    public Double getToLongitude() {
+        return toLongitude;
+    }
+
+    public void setToLongitude(Double toLongitude) {
+        this.toLongitude = toLongitude;
+    }
+
+    public LocalDateTime getDepartureDateTime() {
+        return departureDateTime;
+    }
+
     public void setDepartureDateTime(LocalDateTime departureDateTime) {
         this.departureDateTime = departureDateTime;
     }
 
-    public Integer getTotalSeats() { return totalSeats; }
-    public void setTotalSeats(Integer totalSeats) { this.totalSeats = totalSeats; }
+    public Integer getTotalSeats() {
+        return totalSeats;
+    }
 
-    public Integer getAvailableSeats() { return availableSeats; }
+    public void setTotalSeats(Integer totalSeats) {
+        this.totalSeats = totalSeats;
+    }
+
+    public Integer getAvailableSeats() {
+        return availableSeats;
+    }
+
     public void setAvailableSeats(Integer availableSeats) {
         this.availableSeats = availableSeats;
     }
 
-    public BigDecimal getPricePerSeat() { return pricePerSeat; }
+    public BigDecimal getPricePerSeat() {
+        return pricePerSeat;
+    }
+
     public void setPricePerSeat(BigDecimal pricePerSeat) {
         this.pricePerSeat = pricePerSeat;
     }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public String getStatus() {
+        return status;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public boolean isGpsSharingActive() {
+    return gpsSharingActive;
+}
+
+public void setGpsSharingActive(boolean gpsSharingActive) {
+    this.gpsSharingActive = gpsSharingActive;
+}
 }

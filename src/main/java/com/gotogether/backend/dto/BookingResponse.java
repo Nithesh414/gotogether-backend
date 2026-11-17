@@ -9,8 +9,16 @@ public record BookingResponse(
         Long rideId,
         Long passengerId,
         String passengerName,
+
         String fromLocation,
         String toLocation,
+
+        // Pickup and destination coordinates
+        Double fromLatitude,
+        Double fromLongitude,
+        Double toLatitude,
+        Double toLongitude,
+
         LocalDateTime departureDateTime,
         Integer seatsBooked,
         BigDecimal totalAmount,

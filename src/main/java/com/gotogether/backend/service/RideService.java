@@ -49,11 +49,12 @@ public class RideService {
             CreateRideRequest request) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
 
         DriverProfile driver = driverRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Driver profile not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Driver profile not found"));
 
         if (!"APPROVED".equalsIgnoreCase(driver.getVerificationStatus())) {
             throw new IllegalArgumentException(
@@ -69,6 +70,16 @@ public class RideService {
 
             throw new IllegalArgumentException(
                     "Enter valid pickup and destination locations");
+        }
+
+        // Validate pickup and destination coordinates.
+        if (!isValidLatitude(request.fromLatitude())
+                || !isValidLongitude(request.fromLongitude())
+                || !isValidLatitude(request.toLatitude())
+                || !isValidLongitude(request.toLongitude())) {
+
+            throw new IllegalArgumentException(
+                    "Select valid pickup and destination locations");
         }
 
         if (request.departureDateTime() == null
@@ -97,6 +108,12 @@ public class RideService {
         ride.setDriver(driver);
         ride.setFromLocation(request.fromLocation().trim());
         ride.setToLocation(request.toLocation().trim());
+
+        ride.setFromLatitude(request.fromLatitude());
+        ride.setFromLongitude(request.fromLongitude());
+        ride.setToLatitude(request.toLatitude());
+        ride.setToLongitude(request.toLongitude());
+
         ride.setDepartureDateTime(request.departureDateTime());
         ride.setTotalSeats(request.totalSeats());
         ride.setAvailableSeats(request.totalSeats());
@@ -104,6 +121,20 @@ public class RideService {
         ride.setStatus("SCHEDULED");
 
         return toResponse(rideRepository.save(ride));
+    }
+
+    private boolean isValidLatitude(Double latitude) {
+        return latitude != null
+                && Double.isFinite(latitude)
+                && latitude >= -90
+                && latitude <= 90;
+    }
+
+    private boolean isValidLongitude(Double longitude) {
+        return longitude != null
+                && Double.isFinite(longitude)
+                && longitude >= -180
+                && longitude <= 180;
     }
 
     // 2. SEARCH RIDES
@@ -128,11 +159,12 @@ public class RideService {
     public List<RideResponse> getMyRides(String email) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
 
         DriverProfile driver = driverRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Driver profile not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Driver profile not found"));
 
         return rideRepository
                 .findByDriver_IdOrderByCreatedAtDesc(driver.getId())
@@ -153,11 +185,12 @@ public class RideService {
         }
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
 
         DriverProfile driver = driverRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Driver profile not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Driver profile not found"));
 
         return rideRepository
                 .findByDriver_IdAndStatusIgnoreCaseOrderByCreatedAtDesc(
@@ -167,7 +200,7 @@ public class RideService {
                 .toList();
     }
 
-    // 5. CONFIRM START RIDE AFTER ALL PASSENGERS ARE VERIFIED
+    // 5. CONFIRM START RIDE
 
     @Transactional
     public RideResponse confirmStartTrip(
@@ -197,7 +230,7 @@ public class RideService {
         return toResponse(rideRepository.save(ride));
     }
 
-    // 6. COMPLETE TRIP AND UPDATE SIMULATED PAYMENTS
+    // 6. COMPLETE TRIP
 
     @Transactional
     public RideResponse completeTrip(
@@ -210,34 +243,35 @@ public class RideService {
             throw new IllegalArgumentException(
                     "Only an in-progress ride can be completed");
         }
-
+        
         ride.setStatus("COMPLETED");
+        ride.setGpsSharingActive(false);
 
         Ride completedRide = rideRepository.save(ride);
 
-        // Update boarded passengers' simulated payments.
-        // No actual payment or payout is processed.
         bookingService.markPaymentsSettlementPending(
                 rideId, email);
 
         return toResponse(completedRide);
     }
 
-    // 7. VERIFY DRIVER OWNERSHIP AND LOCK RIDE
+    // 7. VERIFY DRIVER OWNERSHIP
 
     private Ride getRideForDriver(
             String email,
             Long rideId) {
 
         User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
 
         DriverProfile driver = driverRepository.findByUser_Id(user.getId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Driver profile not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Driver profile not found"));
 
         Ride ride = rideRepository.findByIdForUpdate(rideId)
-                .orElseThrow(() -> new IllegalArgumentException("Ride not found"));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Ride not found"));
 
         if (!ride.getDriver().getId().equals(driver.getId())) {
             throw new IllegalArgumentException(
@@ -258,13 +292,22 @@ public class RideService {
                 driver.getId(),
                 driver.getUser().getFullName(),
                 driver.getVehicleNumber(),
+
                 ride.getFromLocation(),
                 ride.getToLocation(),
+
+                ride.getFromLatitude(),
+                ride.getFromLongitude(),
+
+                ride.getToLatitude(),
+                ride.getToLongitude(),
+
                 ride.getDepartureDateTime(),
                 ride.getTotalSeats(),
                 ride.getAvailableSeats(),
                 ride.getPricePerSeat(),
                 ride.getStatus(),
-                driver.getPhotoUrl());
+                driver.getPhotoUrl()
+        );
     }
 }

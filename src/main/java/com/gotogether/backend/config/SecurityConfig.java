@@ -90,6 +90,9 @@ public class SecurityConfig {
         "/api/auth/otp/request",
         "/api/auth/otp/verify",
         "/api/auth/login",
+        "/api/auth/password/forgot/request",
+        "/api/auth/password/forgot/verify",
+        "/api/auth/password/forgot/reset",
         "/api/admin/auth/login"
     ).permitAll()
 

@@ -33,10 +33,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
-            "http://127.0.0.1:5173"
-        ));
+        String configuredOrigins = System.getenv("APP_CORS_ALLOWED_ORIGINS");
+        java.util.List<String> allowedOrigins;
+
+        if (configuredOrigins == null || configuredOrigins.isBlank()) {
+            allowedOrigins = Arrays.asList(
+                "http://localhost:5173",
+                "http://127.0.0.1:5173"
+            );
+        } else {
+            allowedOrigins = Arrays.stream(configuredOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList();
+        }
+
+        configuration.setAllowedOrigins(allowedOrigins);
 
         configuration.setAllowedMethods(Arrays.asList(
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"

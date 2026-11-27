@@ -56,7 +56,8 @@ public class AdminDriverController {
                 driver.getAvailableSeats(),
                 driver.getVerificationStatus(),
                 driver.getRejectionReason(),
-                driver.getCreatedAt()
+                driver.getCreatedAt(),
+                driver.getPhotoUrl()
         );
     }
 
@@ -87,6 +88,44 @@ public class AdminDriverController {
         return adminRepository.findByEmailIgnoreCase(
                 authentication.getName()
         );
+    }
+
+    /**
+     * Returns all driver profiles for the admin directory.
+     * Optional status values: ALL, PENDING, APPROVED, REJECTED.
+     * This endpoint is protected by the existing /api/admin/** ADMIN rule.
+     */
+    @GetMapping
+    public ResponseEntity<?> getDrivers(
+            @RequestParam(required = false, defaultValue = "ALL") String status) {
+
+        String normalizedStatus = status == null
+                ? "ALL"
+                : status.trim().toUpperCase();
+
+        List<String> allowedStatuses = List.of(
+                "ALL", "PENDING", "APPROVED", "REJECTED"
+        );
+
+        if (!allowedStatuses.contains(normalizedStatus)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Status must be ALL, PENDING, APPROVED or REJECTED"
+            ));
+        }
+
+        List<DriverProfile> profiles = normalizedStatus.equals("ALL")
+                ? driverRepository.findAll()
+                : driverRepository.findByVerificationStatusIgnoreCase(normalizedStatus);
+
+        List<AdminDriverResponse> drivers = profiles.stream()
+                .sorted(Comparator.comparing(
+                        DriverProfile::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
+                .map(this::toResponse)
+                .toList();
+
+        return ResponseEntity.ok(drivers);
     }
 
     @GetMapping("/pending")

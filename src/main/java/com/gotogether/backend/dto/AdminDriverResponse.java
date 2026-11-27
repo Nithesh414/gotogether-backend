@@ -1,4 +1,3 @@
-
 package com.gotogether.backend.dto;
 
 import java.time.LocalDateTime;
@@ -15,6 +14,7 @@ public record AdminDriverResponse(
         Integer availableSeats,
         String verificationStatus,
         String rejectionReason,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String photoUrl
 ) {
 }

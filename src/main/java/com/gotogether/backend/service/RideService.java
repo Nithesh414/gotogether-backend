@@ -31,6 +31,7 @@ public class RideService {
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
     private final SegmentAvailabilityService segmentAvailabilityService;
+    private final MapboxRouteDistanceService mapboxRouteDistanceService;
 
     public RideService(
             RideRepository rideRepository,
@@ -38,7 +39,8 @@ public class RideService {
             UserRepository userRepository,
             BookingRepository bookingRepository,
             BookingService bookingService,
-            SegmentAvailabilityService segmentAvailabilityService) {
+            SegmentAvailabilityService segmentAvailabilityService,
+            MapboxRouteDistanceService mapboxRouteDistanceService) {
 
         this.rideRepository = rideRepository;
         this.driverRepository = driverRepository;
@@ -46,6 +48,7 @@ public class RideService {
         this.bookingRepository = bookingRepository;
         this.bookingService = bookingService;
         this.segmentAvailabilityService = segmentAvailabilityService;
+        this.mapboxRouteDistanceService = mapboxRouteDistanceService;
     }
 
     // 1. CREATE RIDE
@@ -230,19 +233,23 @@ public class RideService {
                 continue;
             }
 
+            SegmentAvailabilityService.Segment segment;
+
             try {
-                SegmentAvailabilityService.Segment segment =
-                        segmentAvailabilityService.resolve(ride, from, to);
-
-                int seats = segmentAvailabilityService.availableSeats(
-                        ride, segment);
-
-                if (seats > 0) {
-                    results.add(toResponse(ride, seats));
-                }
-
+                segment = segmentAvailabilityService.resolve(ride, from, to);
             } catch (org.springframework.web.server.ResponseStatusException ignored) {
-                // Requested route is not a valid forward segment of this ride.
+                // Skip only invalid or backward journey segments.
+                continue;
+            }
+
+            int seats = segmentAvailabilityService.availableSeats(ride, segment);
+
+            if (seats > 0) {
+                // Keep Mapbox errors outside the route-validation catch.
+                results.add(toResponse(
+                        ride,
+                        seats,
+                        mapboxRouteDistanceService.fareForSegment(ride, segment)));
             }
         }
 
@@ -384,6 +391,13 @@ public class RideService {
     }
 
     private RideResponse toResponse(Ride ride, int segmentAvailableSeats) {
+        return toResponse(ride, segmentAvailableSeats, null);
+    }
+
+    private RideResponse toResponse(
+            Ride ride,
+            int segmentAvailableSeats,
+            java.math.BigDecimal segmentPricePerSeat) {
 
         DriverProfile driver = ride.getDriver();
 
@@ -421,6 +435,7 @@ public class RideService {
                 ride.getStatus(),
                 driver.getPhotoUrl(),
                 stops,
-                segmentAvailableSeats);
+                segmentAvailableSeats,
+                segmentPricePerSeat);
     }
 }

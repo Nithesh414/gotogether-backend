@@ -36,6 +36,7 @@ public class BookingService {
     private final EmailJsService emailJsService;
     private final PasswordEncoder passwordEncoder;
     private final SegmentAvailabilityService segmentAvailabilityService;
+    private final MapboxRouteDistanceService mapboxRouteDistanceService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -45,7 +46,8 @@ public class BookingService {
             UserRepository userRepository,
             EmailJsService emailJsService,
             PasswordEncoder passwordEncoder,
-            SegmentAvailabilityService segmentAvailabilityService) {
+            SegmentAvailabilityService segmentAvailabilityService,
+            MapboxRouteDistanceService mapboxRouteDistanceService) {
 
         this.bookingRepository = bookingRepository;
         this.rideRepository = rideRepository;
@@ -53,6 +55,7 @@ public class BookingService {
         this.emailJsService = emailJsService;
         this.passwordEncoder = passwordEncoder;
         this.segmentAvailabilityService = segmentAvailabilityService;
+        this.mapboxRouteDistanceService = mapboxRouteDistanceService;
     }
 
     // 1. CREATE BOOKING WITH SIMULATED PAYMENT
@@ -122,7 +125,10 @@ public class BookingService {
                     "You already have a confirmed booking for this ride");
         }
 
-        BigDecimal totalAmount = ride.getPricePerSeat()
+        BigDecimal segmentPricePerSeat =
+                mapboxRouteDistanceService.fareForSegment(ride, selectedSegment);
+
+        BigDecimal totalAmount = segmentPricePerSeat
                 .multiply(BigDecimal.valueOf(request.seatsBooked()))
                 .setScale(2, RoundingMode.HALF_UP);
 
@@ -679,26 +685,60 @@ public class BookingService {
     }
 
     
-private BookingResponse toResponse(Booking booking) {
+private Double getStopLatitude(Ride ride, Integer stopOrder, boolean pickup) {
+    if (stopOrder == null) {
+        return pickup ? ride.getFromLatitude() : ride.getToLatitude();
+    }
+    if (stopOrder == 0) {
+        return ride.getFromLatitude();
+    }
+    List<com.gotogether.backend.entity.RideStop> stops = ride.getStops();
+    if (stops != null) {
+        for (com.gotogether.backend.entity.RideStop stop : stops) {
+            if (stopOrder.equals(stop.getStopOrder())) return stop.getLatitude();
+        }
+    }
+    int destinationOrder = (stops == null ? 0 : stops.size()) + 1;
+    return stopOrder == destinationOrder ? ride.getToLatitude() : null;
+}
 
+private Double getStopLongitude(Ride ride, Integer stopOrder, boolean pickup) {
+    if (stopOrder == null) {
+        return pickup ? ride.getFromLongitude() : ride.getToLongitude();
+    }
+    if (stopOrder == 0) {
+        return ride.getFromLongitude();
+    }
+    List<com.gotogether.backend.entity.RideStop> stops = ride.getStops();
+    if (stops != null) {
+        for (com.gotogether.backend.entity.RideStop stop : stops) {
+            if (stopOrder.equals(stop.getStopOrder())) return stop.getLongitude();
+        }
+    }
+    int destinationOrder = (stops == null ? 0 : stops.size()) + 1;
+    return stopOrder == destinationOrder ? ride.getToLongitude() : null;
+}
+
+private BookingResponse toResponse(Booking booking) {
     Ride ride = booking.getRide();
     User passenger = booking.getPassenger();
+
+    String pickup = booking.getPickupLocation() != null
+            ? booking.getPickupLocation() : ride.getFromLocation();
+    String dropoff = booking.getDropoffLocation() != null
+            ? booking.getDropoffLocation() : ride.getToLocation();
 
     return new BookingResponse(
             booking.getId(),
             ride.getId(),
             passenger.getId(),
             passenger.getFullName(),
-
-            ride.getFromLocation(),
-            ride.getToLocation(),
-
-            // Pickup and destination coordinates
-            ride.getFromLatitude(),
-            ride.getFromLongitude(),
-            ride.getToLatitude(),
-            ride.getToLongitude(),
-
+            pickup,
+            dropoff,
+            getStopLatitude(ride, booking.getPickupStopOrder(), true),
+            getStopLongitude(ride, booking.getPickupStopOrder(), true),
+            getStopLatitude(ride, booking.getDropoffStopOrder(), false),
+            getStopLongitude(ride, booking.getDropoffStopOrder(), false),
             ride.getDepartureDateTime(),
             booking.getSeatsBooked(),
             booking.getTotalAmount(),
@@ -709,4 +749,5 @@ private BookingResponse toResponse(Booking booking) {
             booking.getPaymentReference(),
             booking.getPaidAt()
     );
-}}
+}
+}

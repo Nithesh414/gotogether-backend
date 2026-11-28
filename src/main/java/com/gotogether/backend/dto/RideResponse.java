@@ -27,5 +27,6 @@ public record RideResponse(
     String driverPhotoUrl,
 
     List<RideStopResponse> stops,
-    Integer segmentAvailableSeats
+    Integer segmentAvailableSeats,
+    BigDecimal segmentPricePerSeat
 ) {}

@@ -1,6 +1,10 @@
 
 package com.gotogether.backend.entity;
 
+
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,6 +46,29 @@ public class Ride {
 
     @Column(nullable = false)
 private boolean gpsSharingActive = false;
+
+@OneToMany(
+    mappedBy = "ride",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true
+)
+@OrderBy("stopOrder ASC")
+private List<RideStop> stops = new ArrayList<>();
+
+public List<RideStop> getStops() {
+    return stops;
+}
+
+public void setStops(List<RideStop> stops) {
+    this.stops.clear();
+
+    if (stops != null) {
+        for (RideStop stop : stops) {
+            stop.setRide(this);
+            this.stops.add(stop);
+        }
+    }
+}
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal pricePerSeat;

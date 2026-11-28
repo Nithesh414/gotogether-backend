@@ -3,8 +3,11 @@ package com.gotogether.backend.service;
 
 import com.gotogether.backend.dto.CreateRideRequest;
 import com.gotogether.backend.dto.RideResponse;
+import com.gotogether.backend.dto.RideStopRequest;
+import com.gotogether.backend.dto.RideStopResponse;
 import com.gotogether.backend.entity.DriverProfile;
 import com.gotogether.backend.entity.Ride;
+import com.gotogether.backend.entity.RideStop;
 import com.gotogether.backend.entity.User;
 import com.gotogether.backend.repository.BookingRepository;
 import com.gotogether.backend.repository.DriverProfileRepository;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -120,8 +124,75 @@ public class RideService {
         ride.setPricePerSeat(request.pricePerSeat());
         ride.setStatus("SCHEDULED");
 
+        // 2. VALIDATE AND ATTACH INTERMEDIATE STOPS
+
+        List<RideStopRequest> requestedStops =
+                request.stops() == null ? List.of() : request.stops();
+
+        if (requestedStops.size() > 5) {
+            throw new IllegalArgumentException(
+                    "You can select a maximum of 5 intermediate stops");
+        }
+
+        List<RideStop> rideStops = new ArrayList<>();
+
+        for (int i = 0; i < requestedStops.size(); i++) {
+
+            RideStopRequest stopRequest = requestedStops.get(i);
+
+            if (stopRequest == null
+                    || stopRequest.name() == null
+                    || stopRequest.name().isBlank()
+                    || stopRequest.city() == null
+                    || stopRequest.city().isBlank()) {
+
+                throw new IllegalArgumentException(
+                        "Every intermediate stop must have a valid name and city");
+            }
+
+            if (!isValidLatitude(stopRequest.latitude())
+                    || !isValidLongitude(stopRequest.longitude())) {
+
+                throw new IllegalArgumentException(
+                        "Select a valid location for every intermediate stop");
+            }
+
+            String city = stopRequest.city().trim();
+
+            if (city.equalsIgnoreCase(request.fromLocation().trim())
+                    || city.equalsIgnoreCase(request.toLocation().trim())) {
+
+                throw new IllegalArgumentException(
+                        "Intermediate stops cannot be the starting point or destination");
+            }
+
+            boolean duplicate = rideStops.stream()
+                    .anyMatch(existing ->
+                            existing.getCity().equalsIgnoreCase(city));
+
+            if (duplicate) {
+                throw new IllegalArgumentException(
+                        "Duplicate intermediate stops are not allowed");
+            }
+
+            RideStop stop = new RideStop();
+
+            stop.setRide(ride);
+            stop.setName(stopRequest.name().trim());
+            stop.setCity(city);
+            stop.setLatitude(stopRequest.latitude());
+            stop.setLongitude(stopRequest.longitude());
+            stop.setStopOrder(i + 1);
+
+            rideStops.add(stop);
+        }
+
+        ride.setStops(rideStops);
+
         return toResponse(rideRepository.save(ride));
     }
+
+    // 3. COORDINATE VALIDATION
 
     private boolean isValidLatitude(Double latitude) {
         return latitude != null
@@ -137,7 +208,7 @@ public class RideService {
                 && longitude <= 180;
     }
 
-    // 2. SEARCH RIDES
+    // 4. SEARCH RIDES
 
     @Transactional(readOnly = true)
     public List<RideResponse> searchRides(String from, String to) {
@@ -153,7 +224,7 @@ public class RideService {
                 .toList();
     }
 
-    // 3. GET DRIVER'S RIDES
+    // 5. GET DRIVER'S RIDES
 
     @Transactional(readOnly = true)
     public List<RideResponse> getMyRides(String email) {
@@ -173,7 +244,7 @@ public class RideService {
                 .toList();
     }
 
-    // 4. FILTER DRIVER'S RIDES
+    // 6. FILTER DRIVER'S RIDES
 
     @Transactional(readOnly = true)
     public List<RideResponse> getMyRidesByStatus(
@@ -200,7 +271,7 @@ public class RideService {
                 .toList();
     }
 
-    // 5. CONFIRM START RIDE
+    // 7. CONFIRM START RIDE
 
     @Transactional
     public RideResponse confirmStartTrip(
@@ -230,7 +301,7 @@ public class RideService {
         return toResponse(rideRepository.save(ride));
     }
 
-    // 6. COMPLETE TRIP
+    // 8. COMPLETE TRIP
 
     @Transactional
     public RideResponse completeTrip(
@@ -243,7 +314,7 @@ public class RideService {
             throw new IllegalArgumentException(
                     "Only an in-progress ride can be completed");
         }
-        
+
         ride.setStatus("COMPLETED");
         ride.setGpsSharingActive(false);
 
@@ -255,7 +326,7 @@ public class RideService {
         return toResponse(completedRide);
     }
 
-    // 7. VERIFY DRIVER OWNERSHIP
+    // 9. VERIFY DRIVER OWNERSHIP
 
     private Ride getRideForDriver(
             String email,
@@ -281,11 +352,23 @@ public class RideService {
         return ride;
     }
 
-    // 8. CONVERT ENTITY TO RESPONSE
+    // 10. CONVERT ENTITY TO RESPONSE
 
     private RideResponse toResponse(Ride ride) {
 
         DriverProfile driver = ride.getDriver();
+
+        List<RideStopResponse> stops = ride.getStops()
+                .stream()
+                .map(stop -> new RideStopResponse(
+                        stop.getId(),
+                        stop.getName(),
+                        stop.getCity(),
+                        stop.getLatitude(),
+                        stop.getLongitude(),
+                        stop.getStopOrder()
+                ))
+                .toList();
 
         return new RideResponse(
                 ride.getId(),
@@ -307,7 +390,8 @@ public class RideService {
                 ride.getAvailableSeats(),
                 ride.getPricePerSeat(),
                 ride.getStatus(),
-                driver.getPhotoUrl()
+                driver.getPhotoUrl(),
+                stops
         );
     }
 }

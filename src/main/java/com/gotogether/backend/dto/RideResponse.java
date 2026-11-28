@@ -26,5 +26,6 @@ public record RideResponse(
     String status,
     String driverPhotoUrl,
 
-    List<RideStopResponse> stops
+    List<RideStopResponse> stops,
+    Integer segmentAvailableSeats
 ) {}

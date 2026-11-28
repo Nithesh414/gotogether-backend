@@ -1,4 +1,3 @@
-
 package com.gotogether.backend.entity;
 
 import jakarta.persistence.*;
@@ -26,6 +25,20 @@ public class Booking {
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
+
+    // Selected passenger journey.
+    // Null values represent legacy full-route bookings.
+    @Column(name = "pickup_location")
+    private String pickupLocation;
+
+    @Column(name = "dropoff_location")
+    private String dropoffLocation;
+
+    @Column(name = "pickup_stop_order")
+    private Integer pickupStopOrder;
+
+    @Column(name = "dropoff_stop_order")
+    private Integer dropoffStopOrder;
 
     @Column(nullable = false)
     private String status = "CONFIRMED";
@@ -77,6 +90,26 @@ public class Booking {
     public BigDecimal getTotalAmount() { return totalAmount; }
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getPickupLocation() { return pickupLocation; }
+    public void setPickupLocation(String pickupLocation) {
+        this.pickupLocation = pickupLocation;
+    }
+
+    public String getDropoffLocation() { return dropoffLocation; }
+    public void setDropoffLocation(String dropoffLocation) {
+        this.dropoffLocation = dropoffLocation;
+    }
+
+    public Integer getPickupStopOrder() { return pickupStopOrder; }
+    public void setPickupStopOrder(Integer pickupStopOrder) {
+        this.pickupStopOrder = pickupStopOrder;
+    }
+
+    public Integer getDropoffStopOrder() { return dropoffStopOrder; }
+    public void setDropoffStopOrder(Integer dropoffStopOrder) {
+        this.dropoffStopOrder = dropoffStopOrder;
     }
 
     public String getStatus() { return status; }

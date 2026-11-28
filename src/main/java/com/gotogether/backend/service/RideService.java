@@ -30,19 +30,22 @@ public class RideService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final BookingService bookingService;
+    private final SegmentAvailabilityService segmentAvailabilityService;
 
     public RideService(
             RideRepository rideRepository,
             DriverProfileRepository driverRepository,
             UserRepository userRepository,
             BookingRepository bookingRepository,
-            BookingService bookingService) {
+            BookingService bookingService,
+            SegmentAvailabilityService segmentAvailabilityService) {
 
         this.rideRepository = rideRepository;
         this.driverRepository = driverRepository;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.bookingService = bookingService;
+        this.segmentAvailabilityService = segmentAvailabilityService;
     }
 
     // 1. CREATE RIDE
@@ -213,15 +216,37 @@ public class RideService {
     @Transactional(readOnly = true)
     public List<RideResponse> searchRides(String from, String to) {
 
-        return rideRepository
-                .findByFromLocationContainingIgnoreCaseAndToLocationContainingIgnoreCaseAndStatusIgnoreCase(
-                        from, to, "SCHEDULED")
-                .stream()
-                .filter(ride -> ride.getAvailableSeats() > 0)
-                .filter(ride -> ride.getDepartureDateTime()
-                        .isAfter(LocalDateTime.now()))
-                .map(this::toResponse)
-                .toList();
+        if (from == null || from.isBlank()
+                || to == null || to.isBlank()) {
+            return List.of();
+        }
+
+        List<RideResponse> results = new ArrayList<>();
+
+        for (Ride ride : rideRepository.findByStatusIgnoreCase("SCHEDULED")) {
+
+            if (ride.getDepartureDateTime() == null
+                    || !ride.getDepartureDateTime().isAfter(LocalDateTime.now())) {
+                continue;
+            }
+
+            try {
+                SegmentAvailabilityService.Segment segment =
+                        segmentAvailabilityService.resolve(ride, from, to);
+
+                int seats = segmentAvailabilityService.availableSeats(
+                        ride, segment);
+
+                if (seats > 0) {
+                    results.add(toResponse(ride, seats));
+                }
+
+            } catch (org.springframework.web.server.ResponseStatusException ignored) {
+                // Requested route is not a valid forward segment of this ride.
+            }
+        }
+
+        return results;
     }
 
     // 5. GET DRIVER'S RIDES
@@ -355,6 +380,10 @@ public class RideService {
     // 10. CONVERT ENTITY TO RESPONSE
 
     private RideResponse toResponse(Ride ride) {
+        return toResponse(ride, ride.getAvailableSeats());
+    }
+
+    private RideResponse toResponse(Ride ride, int segmentAvailableSeats) {
 
         DriverProfile driver = ride.getDriver();
 
@@ -391,7 +420,7 @@ public class RideService {
                 ride.getPricePerSeat(),
                 ride.getStatus(),
                 driver.getPhotoUrl(),
-                stops
-        );
+                stops,
+                segmentAvailableSeats);
     }
 }

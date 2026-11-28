@@ -35,6 +35,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final EmailJsService emailJsService;
     private final PasswordEncoder passwordEncoder;
+    private final SegmentAvailabilityService segmentAvailabilityService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -43,13 +44,15 @@ public class BookingService {
             RideRepository rideRepository,
             UserRepository userRepository,
             EmailJsService emailJsService,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            SegmentAvailabilityService segmentAvailabilityService) {
 
         this.bookingRepository = bookingRepository;
         this.rideRepository = rideRepository;
         this.userRepository = userRepository;
         this.emailJsService = emailJsService;
         this.passwordEncoder = passwordEncoder;
+        this.segmentAvailabilityService = segmentAvailabilityService;
     }
 
     // 1. CREATE BOOKING WITH SIMULATED PAYMENT
@@ -94,9 +97,19 @@ public class BookingService {
                     HttpStatus.BAD_REQUEST, "This ride has already departed");
         }
 
-        if (request.seatsBooked() > ride.getAvailableSeats()) {
+        SegmentAvailabilityService.Segment selectedSegment =
+                segmentAvailabilityService.resolve(
+                        ride,
+                        request.fromLocation(),
+                        request.toLocation());
+
+        int segmentSeats = segmentAvailabilityService.availableSeats(
+                ride, selectedSegment);
+
+        if (request.seatsBooked() > segmentSeats) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, "Not enough seats are available");
+                    HttpStatus.CONFLICT,
+                    "Not enough seats are available for this journey segment");
         }
 
         boolean alreadyBooked = bookingRepository
@@ -118,6 +131,10 @@ public class BookingService {
         booking.setRide(ride);
         booking.setPassenger(passenger);
         booking.setSeatsBooked(request.seatsBooked());
+        booking.setPickupLocation(selectedSegment.pickupLocation());
+        booking.setDropoffLocation(selectedSegment.dropoffLocation());
+        booking.setPickupStopOrder(selectedSegment.pickupOrder());
+        booking.setDropoffStopOrder(selectedSegment.dropoffOrder());
         booking.setTotalAmount(totalAmount);
         booking.setStatus("CONFIRMED");
 
@@ -126,13 +143,14 @@ public class BookingService {
         booking.setPaymentReference("SIM-" + UUID.randomUUID());
         booking.setPaidAt(LocalDateTime.now());
 
-        ride.setAvailableSeats(
-                ride.getAvailableSeats() - request.seatsBooked());
+        // Save booking before recalculating occupied segments.
+        Booking savedBooking = bookingRepository.save(booking);
+        bookingRepository.flush();
 
+        segmentAvailabilityService.recalculateRideAvailableSeats(ride);
         rideRepository.save(ride);
 
         // OTP is generated later when the driver starts boarding.
-        Booking savedBooking = bookingRepository.save(booking);
 
         return toResponse(savedBooking);
     }
@@ -583,11 +601,7 @@ public class BookingService {
                     "Cancellation is allowed only up to 5 hours before departure");
         }
 
-        // Restore available seats.
-        ride.setAvailableSeats(
-                ride.getAvailableSeats() + booking.getSeatsBooked());
-
-        // Update booking status.
+        // Mark cancelled before recalculating segment capacity.
         booking.setStatus("CANCELLED");
         booking.setCancelledAt(now);
 
@@ -597,9 +611,14 @@ public class BookingService {
         booking.setBoardingOtpAttempts(0);
 
         // Simulated payment only; no actual refund is processed.
-        rideRepository.save(ride);
-
         Booking savedBooking = bookingRepository.save(booking);
+
+        // Flush so cancelled booking is excluded from occupancy.
+        bookingRepository.flush();
+
+        // Recalculate availability across all route segments.
+        segmentAvailabilityService.recalculateRideAvailableSeats(ride);
+        rideRepository.save(ride);
 
         return toResponse(savedBooking);
     }

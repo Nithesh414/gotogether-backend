@@ -4,6 +4,7 @@ import com.gotogether.backend.dto.AdminBookingResponse;
 import com.gotogether.backend.dto.AdminOverviewResponse;
 import com.gotogether.backend.dto.AdminRideResponse;
 import com.gotogether.backend.dto.AdminUserResponse;
+import com.gotogether.backend.dto.RideStopResponse;
 import com.gotogether.backend.entity.Booking;
 import com.gotogether.backend.entity.DriverProfile;
 import com.gotogether.backend.entity.Ride;
@@ -155,7 +156,17 @@ public class AdminManagementController {
                         r.getPricePerSeat(),
                         r.getStatus(),
                         r.getCreatedAt(),
-                        r.isGpsSharingActive()
+                        r.isGpsSharingActive(),
+                        r.getStops() == null ? List.of() : r.getStops().stream()
+                                .map(stop -> new RideStopResponse(
+                                        stop.getId(),
+                                        stop.getName(),
+                                        stop.getCity(),
+                                        stop.getLatitude(),
+                                        stop.getLongitude(),
+                                        stop.getStopOrder()
+                                ))
+                                .toList()
                 ))
                 .toList();
     }

@@ -2,6 +2,7 @@ package com.gotogether.backend.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record AdminRideResponse(
         Long rideId,
@@ -17,5 +18,6 @@ public record AdminRideResponse(
         BigDecimal pricePerSeat,
         String status,
         LocalDateTime createdAt,
-        boolean gpsSharingActive
+        boolean gpsSharingActive,
+        List<RideStopResponse> stops
 ) {}

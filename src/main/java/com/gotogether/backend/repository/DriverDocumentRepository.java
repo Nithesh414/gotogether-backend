@@ -26,4 +26,10 @@ public interface DriverDocumentRepository
             Long driverId,
             String reviewStatus
     );
+
+    List<DriverDocument> findByDriver_IdInAndDocumentTypeIgnoreCaseAndDocumentSideIgnoreCase(
+            List<Long> driverIds,
+            String documentType,
+            String documentSide
+    );
 }

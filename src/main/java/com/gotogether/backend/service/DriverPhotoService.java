@@ -47,10 +47,10 @@ public class DriverPhotoService {
             );
         }
 
-        if (photo.getSize() > 5 * 1024 * 1024) {
+        if (photo.getSize() > 1L * 1024 * 1024) {
             throw new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Photo size must not exceed 5 MB"
+                "Photo size must not exceed 1 MB"
             );
         }
 

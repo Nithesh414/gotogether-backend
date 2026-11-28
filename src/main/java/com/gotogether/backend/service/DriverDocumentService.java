@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Service
 public class DriverDocumentService {
 
-    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 1L * 1024 * 1024;
 
     private final Cloudinary cloudinary;
     private final UserRepository userRepository;
@@ -59,7 +59,7 @@ public class DriverDocumentService {
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw badRequest("Document size must not exceed 5 MB");
+            throw badRequest("Document size must not exceed 1 MB");
         }
 
         if (documentTypeInput == null || documentTypeInput.isBlank()) {
